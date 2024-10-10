@@ -1,0 +1,954 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model bkp_GeneralLedgers {
+  GeneralLedgerId BigInt   @default(autoincrement())
+  JournalTypeId   Int
+  UserId          BigInt
+  PreviousBalance Float
+  Balance         Float
+  EntryMeanId     Int
+  UpdatedAt       DateTime
+
+  @@map("_bkp_GeneralLedgers")
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model bkp_Journals {
+  JournalId             BigInt   @default(autoincrement())
+  JournalTypeId         Int
+  JournalEntryConceptId Int
+  JournalEntrySideId    Int
+  UserId                BigInt
+  ExternalReference     String?  @db.NVarChar(Max)
+  PreviousBalance       Float
+  Amount                Float
+  Balance               Float
+  EntryMeanId           Int
+  Date                  DateTime
+
+  @@map("_bkp_Journals")
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model bkp_Transactions {
+  TransactionId        BigInt    @default(autoincrement())
+  UserProfileId        BigInt
+  RelatedUserProfileId BigInt?
+  InternalBrandId      BigInt?
+  CashbackLevel        Int
+  CashbackLevelValue   Float
+  TransactionTypeId    Int
+  TransactionMeanId    Int
+  FundingMethodId      BigInt?
+  TransactionStatusId  Int
+  Date                 DateTime
+  DueDate              DateTime?
+  Amount               Float
+  UserAmount           Float
+  TipAmount            Float
+  RelatedTransactionId BigInt?
+  Comment              String?   @db.NVarChar(Max)
+  ExternalPaymentId    String?   @db.NVarChar(Max)
+  ImageUrl             String?   @db.NVarChar(Max)
+  UseCashback          Boolean
+
+  @@map("_bkp_Transactions")
+  @@ignore
+}
+
+model CashbackLevel {
+  CashbackLevelId   BigInt          @id(map: "PK_CashbackLevel") @default(autoincrement())
+  Level             Int
+  TransactionMeanId Int
+  Value             Decimal         @db.Decimal(18, 6)
+  InternalBrandId   BigInt
+  InternalBrands    InternalBrands  @relation(fields: [InternalBrandId], references: [InternalBrandId], onUpdate: NoAction, map: "FK_CashbackLevel_InternalBrands_InternalBrandId")
+  TransactionMean   TransactionMean @relation(fields: [TransactionMeanId], references: [TransactionMeanId], onDelete: Cascade, onUpdate: NoAction, map: "FK_CashbackLevel_TransactionMean_TransactionMeanId")
+
+  @@index([InternalBrandId], map: "IX_CashbackLevel_InternalBrandId")
+  @@index([TransactionMeanId], map: "IX_CashbackLevel_TransactionMeanId")
+}
+
+model CashOutBankAccount {
+  CashOutBankAccountId Int          @id(map: "PK_CashOutBankAccount") @default(autoincrement())
+  AccountNumber        String?      @db.NVarChar(150)
+  RouteNumber          String?      @db.NVarChar(150)
+  Currency             String?      @db.NVarChar(50)
+  Country              String?      @db.NVarChar(50)
+  TransactionId        BigInt
+  Transactions         Transactions @relation(fields: [TransactionId], references: [TransactionId], onDelete: Cascade, onUpdate: NoAction, map: "FK_CashOutBankAccount_Transactions_TransactionId")
+
+  @@index([TransactionId], map: "IX_CashOutBankAccount_TransactionId")
+}
+
+model CashOutProcessType {
+  CashOutProcessTypeId Int                @id(map: "PK_CashOutProcessType") @default(autoincrement())
+  Name                 String?            @db.NVarChar(Max)
+  Description          String?            @db.NVarChar(Max)
+  TransactionFeeTypeId Int
+  ExternalProcessType  String?            @db.NVarChar(Max)
+  Enabled              Boolean
+  TransactionFeeType   TransactionFeeType @relation(fields: [TransactionFeeTypeId], references: [TransactionFeeTypeId], onDelete: Cascade, onUpdate: NoAction, map: "FK_CashOutProcessType_TransactionFeeType_TransactionFeeTypeId")
+
+  @@index([TransactionFeeTypeId], map: "IX_CashOutProcessType_TransactionFeeTypeId")
+}
+
+model CheckoutStore {
+  CheckoutStoreId     BigInt    @id(map: "PK_CheckoutStore") @default(autoincrement())
+  CheckoutId          BigInt
+  CheckoutKey         String?   @db.NVarChar(Max)
+  PlugginId           String?   @db.NVarChar(Max)
+  PluginTransactionId String?   @db.NVarChar(Max)
+  Amount              Decimal   @db.Decimal(18, 6)
+  StoreCode           String?   @db.NVarChar(Max)
+  ImageUrl            String?   @db.NVarChar(Max)
+  Tradename           String?   @db.NVarChar(Max)
+  Segment             String?   @db.NVarChar(Max)
+  CheckoutStatusId    Int
+  Message             String?   @db.NVarChar(Max)
+  TransactionId       String?   @db.NVarChar(Max)
+  QR                  Bytes?
+  CreatedAt           DateTime
+  ModifiedAt          DateTime?
+}
+
+model Countries {
+  CountryId   Int       @id(map: "PK_Countries") @default(autoincrement())
+  Description String?   @db.NVarChar(100)
+  ISOCode     String?   @db.NVarChar(Max)
+  PhoneCode   String?   @db.NVarChar(Max)
+  Enabled     Boolean
+  Regions     Regions[]
+}
+
+model ExchangeProc {
+  ExchangeProcId         BigInt         @id(map: "PK_ExchangeProc") @default(autoincrement())
+  UserProfileId          BigInt
+  ExchangeStatusId       Int
+  ChangellyTransactionId String?        @db.NVarChar(Max)
+  TransactionId          BigInt
+  Date                   DateTime
+  CurrencyFrom           String?        @db.NVarChar(Max)
+  CurrencyTo             String?        @db.NVarChar(Max)
+  AmountTo               Decimal        @db.Decimal(38, 18)
+  PayinAddress           String?        @db.NVarChar(Max)
+  EstimateAmount         Decimal        @db.Decimal(38, 18)
+  ExpectedExchangeRate   Decimal        @db.Decimal(38, 18)
+  ExchangeFee            Decimal        @db.Decimal(38, 18)
+  NetworkFee             Decimal        @db.Decimal(38, 18)
+  UsdFrom                Decimal        @db.Decimal(38, 18)
+  UsdTo                  Decimal        @db.Decimal(38, 18)
+  ExchangeStatus         ExchangeStatus @relation(fields: [ExchangeStatusId], references: [ExchangeStatusId], onUpdate: NoAction, map: "FK_ExchangeProc_ExchangeStatus_ExchangeStatusId")
+  Transactions           Transactions   @relation(fields: [TransactionId], references: [TransactionId], onUpdate: NoAction, map: "FK_ExchangeProc_Transactions_TransactionId")
+  UserProfiles           UserProfiles   @relation(fields: [UserProfileId], references: [UserProfileId], onUpdate: NoAction, map: "FK_ExchangeProc_UserProfiles_UserProfileId")
+
+  @@index([ExchangeStatusId], map: "IX_ExchangeProc_ExchangeStatusId")
+  @@index([TransactionId], map: "IX_ExchangeProc_TransactionId")
+  @@index([UserProfileId], map: "IX_ExchangeProc_UserProfileId")
+}
+
+model ExchangeStatus {
+  ExchangeStatusId Int            @id(map: "PK_ExchangeStatus") @default(autoincrement())
+  Description      String?        @db.NVarChar(250)
+  ExchangeProc     ExchangeProc[]
+}
+
+model ExternalProviderTypes {
+  ExternalProviderTypeId Int            @id(map: "PK_ExternalProviderTypes") @default(autoincrement())
+  Description            String?        @db.NVarChar(100)
+  UserProfiles           UserProfiles[]
+}
+
+model FundingMethods {
+  FundingMethodId       BigInt              @id(map: "PK_FundingMethods") @default(autoincrement())
+  FundingMethodTypeId   Int
+  FundigMethodStatusId  Int                 @default(6, map: "DF__FundingMe__Fundi__41D8BC2C")
+  UserProfileId         BigInt
+  ExternalPaymentId     String?             @db.NVarChar(Max)
+  Message               String?             @db.NVarChar(Max)
+  CreatedAt             DateTime
+  UpdatedAt             DateTime?
+  AccountName           String?             @db.NVarChar(Max)
+  BankAccountSubType    String?             @db.NVarChar(Max)
+  BankAccountType       String?             @db.NVarChar(Max)
+  Institution           String?             @db.NVarChar(Max)
+  RoutingNumber         String?             @db.NVarChar(Max)
+  OldestTransaccionDate DateTime?
+  CardNetwork           String?             @db.NVarChar(Max)
+  CardType              String?             @db.NVarChar(Max)
+  LastFour              String?             @db.NVarChar(Max)
+  PaymentSourceId       String?             @db.NVarChar(Max)
+  FundingMethodStatus   FundingMethodStatus @relation(fields: [FundigMethodStatusId], references: [FundingMethodStausId], onUpdate: NoAction, map: "FK_FundingMethods_FundingMethodStatus_FundigMethodStatusId")
+  FundingMethodTypes    FundingMethodTypes  @relation(fields: [FundingMethodTypeId], references: [FundingMethodTypeId], onUpdate: NoAction, map: "FK_FundingMethods_FundingMethodTypes_FundingMethodTypeId")
+  UserProfiles          UserProfiles        @relation(fields: [UserProfileId], references: [UserProfileId], onUpdate: NoAction, map: "FK_FundingMethods_UserProfiles_UserProfileId")
+  Transactions          Transactions[]
+
+  @@index([FundigMethodStatusId], map: "IX_FundingMethods_FundigMethodStatusId")
+  @@index([FundingMethodTypeId], map: "IX_FundingMethods_FundingMethodTypeId")
+  @@index([UserProfileId], map: "IX_FundingMethods_UserProfileId")
+}
+
+model FundingMethodStatus {
+  FundingMethodStausId Int              @id(map: "PK_FundingMethodStatus") @default(autoincrement())
+  Description          String?          @db.NVarChar(Max)
+  FundingMethods       FundingMethods[]
+}
+
+model FundingMethodTypes {
+  FundingMethodTypeId Int              @id(map: "PK_FundingMethodTypes") @default(autoincrement())
+  Description         String?          @db.NVarChar(200)
+  FundingMethods      FundingMethods[]
+}
+
+model GeneralLedgers {
+  GeneralLedgerId BigInt       @id(map: "PK_GeneralLedgers") @default(autoincrement())
+  JournalTypeId   Int
+  UserId          BigInt
+  PreviousBalance Decimal      @db.Decimal(38, 18)
+  Balance         Decimal      @db.Decimal(38, 18)
+  EntryMeanId     Int
+  UpdatedAt       DateTime
+  JournalTypes    JournalTypes @relation(fields: [JournalTypeId], references: [JournalTypeId], onUpdate: NoAction, map: "FK_GeneralLedgers_JournalTypes_JournalTypeId")
+
+  @@index([JournalTypeId], map: "IX_GeneralLedgers_JournalTypeId")
+}
+
+model InboxMessages {
+  Id                    BigInt    @id(map: "PK_InboxMessages") @default(autoincrement())
+  Topic                 String?   @db.NVarChar(Max)
+  Subscription          String?   @db.NVarChar(Max)
+  CorrelationId         String?   @db.NVarChar(Max)
+  MessageId             String?   @db.NVarChar(450)
+  Body                  Bytes?
+  ApplicationProperties String?   @db.NVarChar(Max)
+  ReceivedDateTime      DateTime  @db.DateTimeOffset
+  Processed             Boolean
+  ProcessedDateTime     DateTime? @db.DateTimeOffset
+  Error                 String?   @db.NVarChar(Max)
+
+  @@index([MessageId], map: "IX_InboxMessages_MessageId")
+}
+
+model InternalBrands {
+  InternalBrandId       BigInt           @id(map: "PK_InternalBrands") @default(autoincrement())
+  BrandName             String?          @db.NVarChar(250)
+  ProductSku            String?          @db.NVarChar(250)
+  ImageUrl              String?          @db.NVarChar(500)
+  IsOnline              Boolean
+  IsRestaurant          Boolean
+  AllowTips             Boolean
+  ParentInternalBrandId BigInt?
+  Enabled               Boolean
+  CashbackLevel         CashbackLevel[]
+  InternalBrands        InternalBrands?  @relation("InternalBrandsToInternalBrands", fields: [ParentInternalBrandId], references: [InternalBrandId], onDelete: NoAction, onUpdate: NoAction, map: "FK_InternalBrands_InternalBrands_ParentInternalBrandId")
+  other_InternalBrands  InternalBrands[] @relation("InternalBrandsToInternalBrands")
+
+  @@index([ParentInternalBrandId], map: "IX_InternalBrands_ParentInternalBrandId")
+}
+
+model IThriveCommissionSends {
+  IThriveCommissionSendId BigInt    @id(map: "PK_IThriveCommissionSends") @default(autoincrement())
+  UserProfileId           BigInt
+  TransactionId           BigInt
+  Amount                  Decimal   @db.Decimal(38, 18)
+  Processed               Boolean
+  Date                    DateTime?
+  Message                 String?   @db.NVarChar(Max)
+  PointID                 Int?
+  Status                  String?   @db.NVarChar(Max)
+}
+
+model IThriveGiftCard {
+  IThriveGiftCardId BigInt        @id(map: "PK_IThriveGiftCard") @default(autoincrement())
+  UserProfileId     BigInt
+  TransactionId     BigInt?
+  Status            String?       @db.NVarChar(Max)
+  Message           String?       @db.NVarChar(Max)
+  CouponCode        String?       @db.NVarChar(Max)
+  AcctID            Int?
+  ExpirationDate    DateTime?
+  Transactions      Transactions? @relation(fields: [TransactionId], references: [TransactionId], onDelete: NoAction, onUpdate: NoAction, map: "FK_IThriveGiftCard_Transactions_TransactionId")
+  UserProfiles      UserProfiles  @relation(fields: [UserProfileId], references: [UserProfileId], onUpdate: NoAction, map: "FK_IThriveGiftCard_UserProfiles_UserProfileId")
+
+  @@index([TransactionId], map: "IX_IThriveGiftCard_TransactionId")
+  @@index([UserProfileId], map: "IX_IThriveGiftCard_UserProfileId")
+}
+
+model IThriveUsers {
+  IThriveUserId Int      @id(map: "PK_IThriveUsers") @default(autoincrement())
+  FirstName     String?  @db.NVarChar(150)
+  LastName      String?  @db.NVarChar(150)
+  Email         String?  @db.NVarChar(200)
+  Phone         String?  @db.NVarChar(150)
+  FriendId      BigInt?
+  CreatedAt     DateTime
+  UpdatedAt     DateTime
+}
+
+model JournalEntryConcepts {
+  JournalEntryConceptId Int        @id(map: "PK_JournalEntryConcepts") @default(autoincrement())
+  Description           String?    @db.NVarChar(100)
+  Journals              Journals[]
+}
+
+model JournalEntrySides {
+  JournalEntrySideId Int        @id(map: "PK_JournalEntrySides") @default(autoincrement())
+  Description        String?    @db.NVarChar(100)
+  Journals           Journals[]
+}
+
+model Journals {
+  JournalId             BigInt               @id(map: "PK_Journals") @default(autoincrement())
+  JournalTypeId         Int
+  JournalEntryConceptId Int
+  JournalEntrySideId    Int
+  UserId                BigInt
+  ExternalReference     String?              @db.NVarChar(Max)
+  PreviousBalance       Decimal              @db.Decimal(38, 18)
+  Amount                Decimal              @db.Decimal(38, 18)
+  Balance               Decimal              @db.Decimal(38, 18)
+  EntryMeanId           Int
+  Date                  DateTime
+  JournalEntryConcepts  JournalEntryConcepts @relation(fields: [JournalEntryConceptId], references: [JournalEntryConceptId], onUpdate: NoAction, map: "FK_Journals_JournalEntryConcepts_JournalEntryConceptId")
+  JournalEntrySides     JournalEntrySides    @relation(fields: [JournalEntrySideId], references: [JournalEntrySideId], onUpdate: NoAction, map: "FK_Journals_JournalEntrySides_JournalEntrySideId")
+  JournalTypes          JournalTypes         @relation(fields: [JournalTypeId], references: [JournalTypeId], onUpdate: NoAction, map: "FK_Journals_JournalTypes_JournalTypeId")
+
+  @@index([JournalEntryConceptId], map: "IX_Journals_JournalEntryConceptId")
+  @@index([JournalEntrySideId], map: "IX_Journals_JournalEntrySideId")
+  @@index([JournalTypeId], map: "IX_Journals_JournalTypeId")
+}
+
+model JournalTypes {
+  JournalTypeId  Int              @id(map: "PK_JournalTypes") @default(autoincrement())
+  Description    String?          @db.NVarChar(100)
+  GeneralLedgers GeneralLedgers[]
+  Journals       Journals[]
+}
+
+model MobileSession {
+  MobileSessionId BigInt   @id(map: "PK_MobileSession") @default(autoincrement())
+  UserProfileId   BigInt
+  RemoteIpAddress String?  @db.NVarChar(Max)
+  UserAgent       String?  @db.NVarChar(Max)
+  Schema          String?  @db.NVarChar(Max)
+  Token           String?  @db.NVarChar(Max)
+  Headers         String?  @db.NVarChar(Max)
+  Date            DateTime
+  Request         String?  @db.NVarChar(Max)
+  Protocol        String?  @db.NVarChar(Max)
+  Method          String?  @db.NVarChar(Max)
+}
+
+model MoneyCards {
+  MoneyCardId           BigInt                  @id(map: "PK_MoneyCards") @default(autoincrement())
+  MoneyCardTypeId       Int
+  MoneyCardStatusId     Int
+  UserProfileId         BigInt
+  TransactionId         BigInt?
+  ExternalPaymentId     String?                 @db.NVarChar(Max)
+  Name                  String?                 @db.NVarChar(Max)
+  LastFourDigits        String?                 @db.NVarChar(Max)
+  Pan                   String?                 @db.NVarChar(Max)
+  ExpirationMonth       String?                 @db.NVarChar(Max)
+  ExpirationYear        String?                 @db.NVarChar(Max)
+  InitialAmount         Decimal                 @db.Decimal(18, 6)
+  AvailableAmount       Decimal                 @db.Decimal(18, 6)
+  CreatedAt             DateTime
+  UpdatedAt             DateTime?
+  IsPrepaid             Boolean                 @default(dbgenerated("CONVERT([bit],(0))"), map: "DF__MoneyCard__IsPre__7152C524")
+  IsPhysicallyActivated Boolean                 @default(dbgenerated("CONVERT([bit],(0))"), map: "DF__MoneyCard__IsPhy__797DF6D1")
+  MoneyCardStatus       MoneyCardStatus         @relation(fields: [MoneyCardStatusId], references: [MoneyCardStatusId], onUpdate: NoAction, map: "FK_MoneyCards_MoneyCardStatus_MoneyCardStatusId")
+  MoneyCardTypes        MoneyCardTypes          @relation(fields: [MoneyCardTypeId], references: [MoneyCardTypeId], onUpdate: NoAction, map: "FK_MoneyCards_MoneyCardTypes_MoneyCardTypeId")
+  UserProfiles          UserProfiles            @relation(fields: [UserProfileId], references: [UserProfileId], onUpdate: NoAction, map: "FK_MoneyCards_UserProfiles_UserProfileId")
+  MoneyCardTransactions MoneyCardTransactions[]
+
+  @@index([MoneyCardStatusId], map: "IX_MoneyCards_MoneyCardStatusId")
+  @@index([MoneyCardTypeId], map: "IX_MoneyCards_MoneyCardTypeId")
+  @@index([UserProfileId], map: "IX_MoneyCards_UserProfileId")
+}
+
+model MoneyCardStatus {
+  MoneyCardStatusId Int          @id(map: "PK_MoneyCardStatus") @default(autoincrement())
+  Description       String?      @db.NVarChar(100)
+  MoneyCards        MoneyCards[]
+}
+
+model MoneyCardTransactionResults {
+  MoneyCardTransactionResultId Int                     @id(map: "PK_MoneyCardTransactionResults") @default(autoincrement())
+  Description                  String?                 @db.NVarChar(100)
+  MoneyCardTransactions        MoneyCardTransactions[]
+}
+
+model MoneyCardTransactions {
+  MoneyCardTransactionId         BigInt                       @id(map: "PK_MoneyCardTransactions") @default(autoincrement())
+  MoneyCardId                    BigInt
+  MoneyCardTransactionStatusId   Int
+  MoneyCardTransactionResultId   Int
+  ResultMessage                  String?                      @db.NVarChar(Max)
+  MerchantDescription            String?                      @db.NVarChar(Max)
+  ExternalPaymentId              String?                      @db.NVarChar(Max)
+  Amount                         Decimal                      @db.Decimal(18, 6)
+  CreatedAt                      DateTime
+  UpdatedAt                      DateTime?
+  MerchantCategoryCode           String?                      @db.NVarChar(Max)
+  MerchantCity                   String?                      @db.NVarChar(Max)
+  MerchantCountry                String?                      @db.NVarChar(Max)
+  MerchantState                  String?                      @db.NVarChar(Max)
+  TransactionId                  BigInt?
+  ReleatedMoneyCardTransactionId BigInt?
+  SettledAmount                  Decimal                      @db.Decimal(18, 6)
+  AuthAmount                     Decimal                      @db.Decimal(18, 6)
+  VoidedAmount                   Decimal                      @db.Decimal(18, 6)
+  MoneyCardTransactionTypeId     Int                          @default(0, map: "DF__MoneyCard__Money__10CB707D")
+  MoneyCards                     MoneyCards                   @relation(fields: [MoneyCardId], references: [MoneyCardId], onUpdate: NoAction, map: "FK_MoneyCardTransactions_MoneyCards_MoneyCardId")
+  MoneyCardTransactionResults    MoneyCardTransactionResults  @relation(fields: [MoneyCardTransactionResultId], references: [MoneyCardTransactionResultId], onUpdate: NoAction, map: "FK_MoneyCardTransactions_MoneyCardTransactionResults_MoneyCardTransactionResultId")
+  MoneyCardTransactionStatuses   MoneyCardTransactionStatuses @relation(fields: [MoneyCardTransactionStatusId], references: [MoneyCardTransactionStatusId], onUpdate: NoAction, map: "FK_MoneyCardTransactions_MoneyCardTransactionStatuses_MoneyCardTransactionStatusId")
+  MoneyCardTransactionTypes      MoneyCardTransactionTypes    @relation(fields: [MoneyCardTransactionTypeId], references: [MoneyCardTransactionTypeId], onUpdate: NoAction, map: "FK_MoneyCardTransactions_MoneyCardTransactionTypes_MoneyCardTransactionTypeId")
+
+  @@index([MoneyCardId], map: "IX_MoneyCardTransactions_MoneyCardId")
+  @@index([MoneyCardTransactionResultId], map: "IX_MoneyCardTransactions_MoneyCardTransactionResultId")
+  @@index([MoneyCardTransactionStatusId], map: "IX_MoneyCardTransactions_MoneyCardTransactionStatusId")
+  @@index([MoneyCardTransactionTypeId], map: "IX_MoneyCardTransactions_MoneyCardTransactionTypeId")
+}
+
+model MoneyCardTransactionStatuses {
+  MoneyCardTransactionStatusId Int                     @id(map: "PK_MoneyCardTransactionStatuses") @default(autoincrement())
+  Description                  String?                 @db.NVarChar(100)
+  MoneyCardTransactions        MoneyCardTransactions[]
+}
+
+model MoneyCardTransactionTypes {
+  MoneyCardTransactionTypeId Int                     @id(map: "PK_MoneyCardTransactionTypes") @default(autoincrement())
+  Description                String?                 @db.NVarChar(100)
+  MoneyCardTransactions      MoneyCardTransactions[]
+}
+
+model MoneyCardTypes {
+  MoneyCardTypeId Int          @id(map: "PK_MoneyCardTypes") @default(autoincrement())
+  Description     String?      @db.NVarChar(100)
+  MoneyCards      MoneyCards[]
+}
+
+model Order {
+  OrderId             BigInt         @id(map: "PK_Order") @default(autoincrement())
+  CustomerOrderId     String?        @db.NVarChar(Max)
+  TransactionId       BigInt
+  UserProfileId       BigInt
+  OrderUri            String?        @db.NVarChar(Max)
+  CreatedOn           DateTime       @db.DateTimeOffset
+  OrderStatus         String?        @db.NVarChar(Max)
+  Message             String?        @db.NVarChar(Max)
+  PurchaseOrderNumber String?        @db.NVarChar(Max)
+  ProgramId           BigInt
+  CatalogId           BigInt
+  Metadata            String?        @db.NVarChar(Max)
+  TotalFaceValue      BigInt
+  TotalFees           BigInt
+  TotalDiscounts      BigInt
+  TotalCustomerCost   BigInt
+  EmailTheme          String?        @db.NVarChar(Max)
+  ShippingMethod      String?        @db.NVarChar(Max)
+  LanguageCultureCode String?        @db.NVarChar(Max)
+  FirstName           String?        @db.NVarChar(Max)
+  LastName            String?        @db.NVarChar(Max)
+  EmailAddress        String?        @db.NVarChar(Max)
+  Address1            String?        @db.NVarChar(Max)
+  Address2            String?        @db.NVarChar(Max)
+  City                String?        @db.NVarChar(Max)
+  StateProvinceCode   String?        @db.NVarChar(Max)
+  PostalCode          String?        @db.NVarChar(Max)
+  CountryCode         String?        @db.NVarChar(Max)
+  DeliverEmail        Boolean
+  Transactions        Transactions   @relation(fields: [TransactionId], references: [TransactionId], onUpdate: NoAction, map: "FK_Order_Transactions_TransactionId")
+  OrderCard           OrderCard[]
+  OrderProduct        OrderProduct[]
+
+  @@index([TransactionId], map: "IX_Order_TransactionId")
+}
+
+model OrderCard {
+  OrderCardId        BigInt   @id(map: "PK_OrderCard") @default(autoincrement())
+  BarcodeImageUrl    String?  @db.NVarChar(Max)
+  CardNumber         String?  @db.NVarChar(Max)
+  CardUri            String?  @db.NVarChar(Max)
+  CertificateLink    String?  @db.NVarChar(Max)
+  CreatedOn          DateTime @db.DateTimeOffset
+  ImageUrl           String?  @db.NVarChar(Max)
+  InitialBalance     BigInt
+  Pin                String?  @db.NVarChar(Max)
+  Sku                String?  @db.NVarChar(Max)
+  TermsAndConditions String?  @db.NVarChar(Max)
+  UsageInstructions  String?  @db.NVarChar(Max)
+  OrderId            BigInt
+  Order              Order    @relation(fields: [OrderId], references: [OrderId], onDelete: Cascade, onUpdate: NoAction, map: "FK_OrderCard_Order_OrderId")
+
+  @@index([OrderId], map: "IX_OrderCard_OrderId")
+}
+
+model OrderProduct {
+  OrderProductId       BigInt              @id(map: "PK_OrderProduct") @default(autoincrement())
+  Value                Decimal             @db.Decimal(18, 2)
+  Quantity             BigInt
+  EmbossedTextId       BigInt?
+  Packaging            String?             @db.NVarChar(Max)
+  ImageCode            String?             @db.NVarChar(Max)
+  MessageText          String?             @db.NVarChar(Max)
+  MessageRecipientName String?             @db.NVarChar(Max)
+  ProductName          String?             @db.NVarChar(Max)
+  BrandName            String?             @db.NVarChar(Max)
+  ProductSku           String?             @db.NVarChar(Max)
+  IsDigital            Boolean
+  MaxAmount            BigInt
+  MinAmount            BigInt
+  Description          String?             @db.NVarChar(Max)
+  ModifiedOn           DateTime            @db.DateTimeOffset
+  CurrencyCode         String?             @db.NVarChar(Max)
+  ProductType          String?             @db.NVarChar(Max)
+  ProgramId            BigInt
+  CatalogId            BigInt
+  OrderId              BigInt
+  Order                Order               @relation(fields: [OrderId], references: [OrderId], onDelete: Cascade, onUpdate: NoAction, map: "FK_OrderProduct_Order_OrderId")
+  OrderProductAsset    OrderProductAsset[]
+
+  @@index([OrderId], map: "IX_OrderProduct_OrderId")
+}
+
+model OrderProductAsset {
+  OrderProductAssetId BigInt       @id(map: "PK_OrderProductAsset") @default(autoincrement())
+  Type                String?      @db.NVarChar(Max)
+  Text                String?      @db.NVarChar(Max)
+  LastModified        String?      @db.NVarChar(Max)
+  CountryCode         String?      @db.NVarChar(Max)
+  Href                String?      @db.NVarChar(Max)
+  OrderProductId      BigInt
+  OrderProduct        OrderProduct @relation(fields: [OrderProductId], references: [OrderProductId], onDelete: Cascade, onUpdate: NoAction, map: "FK_OrderProductAsset_OrderProduct_OrderProductId")
+
+  @@index([OrderProductId], map: "IX_OrderProductAsset_OrderProductId")
+}
+
+model OutboxMessages {
+  Id                    BigInt    @id(map: "PK_OutboxMessages") @default(autoincrement())
+  Topic                 String?   @db.NVarChar(Max)
+  CorrelationId         String?   @db.NVarChar(Max)
+  MessageId             String?   @db.NVarChar(450)
+  Body                  Bytes?
+  ApplicationProperties String?   @db.NVarChar(Max)
+  DateTime              DateTime  @db.DateTimeOffset
+  Processed             Boolean
+  ProcessedDateTime     DateTime? @db.DateTimeOffset
+
+  @@index([MessageId], map: "IX_OutboxMessages_MessageId")
+}
+
+model Parameters {
+  ParameterId Int     @id(map: "PK_Parameters") @default(autoincrement())
+  Code        String? @db.NVarChar(100)
+  Value       String? @db.NVarChar(Max)
+  Description String? @db.NVarChar(Max)
+}
+
+model Referrals {
+  ReferralId                                                BigInt       @id(map: "PK_Referrals") @default(autoincrement())
+  ParentReferralId                                          BigInt
+  ParentReferralTypeId                                      Int
+  ChildReferralId                                           BigInt
+  ChildReferralTypeId                                       Int
+  Enabled                                                   Boolean
+  CreatedAt                                                 DateTime?
+  UpdatedAt                                                 DateTime?
+  ReferralType_Referrals_ChildReferralTypeIdToReferralType  ReferralType @relation("Referrals_ChildReferralTypeIdToReferralType", fields: [ChildReferralTypeId], references: [ReferralTypeId], onUpdate: NoAction, map: "FK_Referrals_ReferralType_ChildReferralTypeId")
+  ReferralType_Referrals_ParentReferralTypeIdToReferralType ReferralType @relation("Referrals_ParentReferralTypeIdToReferralType", fields: [ParentReferralTypeId], references: [ReferralTypeId], onUpdate: NoAction, map: "FK_Referrals_ReferralType_ParentReferralTypeId")
+
+  @@index([ChildReferralTypeId], map: "IX_Referrals_ChildReferralTypeId")
+  @@index([ParentReferralTypeId], map: "IX_Referrals_ParentReferralTypeId")
+}
+
+model ReferralType {
+  ReferralTypeId                                         Int         @id(map: "PK_ReferralType") @default(autoincrement())
+  Description                                            String?     @db.NVarChar(100)
+  Referrals_Referrals_ChildReferralTypeIdToReferralType  Referrals[] @relation("Referrals_ChildReferralTypeIdToReferralType")
+  Referrals_Referrals_ParentReferralTypeIdToReferralType Referrals[] @relation("Referrals_ParentReferralTypeIdToReferralType")
+}
+
+model RefreshTokens {
+  RefreshTokenId BigInt   @id(map: "PK_RefreshTokens") @default(autoincrement())
+  UserId         BigInt
+  Token          String?  @db.NVarChar(255)
+  CreatedAt      DateTime
+  ExpirationDate DateTime
+}
+
+model Regions {
+  RegionId    Int       @id(map: "PK_Regions") @default(autoincrement())
+  Description String?   @db.NVarChar(500)
+  ShortCode   String?   @db.NVarChar(Max)
+  CountryId   Int
+  Countries   Countries @relation(fields: [CountryId], references: [CountryId], onUpdate: NoAction, map: "FK_Regions_Countries_CountryId")
+
+  @@index([CountryId], map: "IX_Regions_CountryId")
+}
+
+model RewardCashBackLevel {
+  RewardCashBackLevelId BigInt          @id(map: "PK_RewardCashBackLevel") @default(autoincrement())
+  Level                 Int
+  TransactionMeanId     Int
+  Value                 Decimal         @db.Decimal(18, 6)
+  RewardProviderId      BigInt
+  RewardProvider        RewardProvider  @relation(fields: [RewardProviderId], references: [RewardProviderId], onUpdate: NoAction, map: "FK_RewardCashBackLevel_RewardProvider_RewardProviderId")
+  TransactionMean       TransactionMean @relation(fields: [TransactionMeanId], references: [TransactionMeanId], onDelete: Cascade, onUpdate: NoAction, map: "FK_RewardCashBackLevel_TransactionMean_TransactionMeanId")
+
+  @@index([RewardProviderId], map: "IX_RewardCashBackLevel_RewardProviderId")
+  @@index([TransactionMeanId], map: "IX_RewardCashBackLevel_TransactionMeanId")
+}
+
+model RewardProvider {
+  RewardProviderId    BigInt                @id(map: "PK_RewardProvider") @default(autoincrement())
+  ShortName           String?               @db.NVarChar(20)
+  Name                String?               @db.NVarChar(250)
+  Enabled             Boolean
+  RewardCashBackLevel RewardCashBackLevel[]
+}
+
+model Statements {
+  StatementId           BigInt                  @id(map: "PK_Statements") @default(autoincrement())
+  Date                  DateTime
+  StatementFrom         DateTime
+  StatementTo           DateTime
+  TotalAmount           Decimal                 @db.Decimal(38, 18)
+  StatementTypeId       Int
+  StatementStatusId     Int
+  CreatedAt             DateTime?
+  UpdatedAt             DateTime?
+  ExternalPaymentId     String?                 @db.NVarChar(Max)
+  FundingMethodId       BigInt?
+  UserProfileId         BigInt?
+  StatementStatus       StatementStatus         @relation(fields: [StatementStatusId], references: [StatementStatusId], onUpdate: NoAction, map: "FK_Statements_StatementStatus_StatementStatusId")
+  StatementType         StatementType           @relation(fields: [StatementTypeId], references: [StatementTypeId], onUpdate: NoAction, map: "FK_Statements_StatementType_StatementTypeId")
+  StatementTransactions StatementTransactions[]
+
+  @@index([StatementStatusId], map: "IX_Statements_StatementStatusId")
+  @@index([StatementTypeId], map: "IX_Statements_StatementTypeId")
+}
+
+model StatementStatus {
+  StatementStatusId Int          @id(map: "PK_StatementStatus") @default(autoincrement())
+  Description       String?      @db.NVarChar(250)
+  Statements        Statements[]
+}
+
+model StatementTransactions {
+  StatementTransactionId BigInt     @id(map: "PK_StatementTransactions") @default(autoincrement())
+  StatementId            BigInt
+  TransactionId          BigInt
+  Amount                 Decimal    @db.Decimal(38, 18)
+  CashbackAmount         Decimal    @db.Decimal(38, 18)
+  TipAmount              Decimal    @db.Decimal(38, 18)
+  UserAmount             Decimal    @db.Decimal(38, 18)
+  Statements             Statements @relation(fields: [StatementId], references: [StatementId], onUpdate: NoAction, map: "FK_StatementTransactions_Statements_StatementId")
+
+  @@index([StatementId], map: "IX_StatementTransactions_StatementId")
+}
+
+model StatementType {
+  StatementTypeId Int          @id(map: "PK_StatementType") @default(autoincrement())
+  Description     String?      @db.NVarChar(250)
+  Statements      Statements[]
+}
+
+model TransactionData {
+  TransactionDataId BigInt       @id(map: "PK_TransactionData") @default(autoincrement())
+  TransactionId     BigInt
+  Key               String?      @db.NVarChar(Max)
+  Value             String?      @db.NVarChar(Max)
+  Transactions      Transactions @relation(fields: [TransactionId], references: [TransactionId], onDelete: Cascade, onUpdate: NoAction, map: "FK_TransactionData_Transactions_TransactionId")
+
+  @@index([TransactionId], map: "IX_TransactionData_TransactionId")
+}
+
+model TransactionDeals {
+  TransactionDealId  BigInt       @id(map: "PK_TransactionDeals") @default(autoincrement())
+  TransactionId      BigInt
+  CampaignId         BigInt
+  DiscountAmount     Decimal      @db.Decimal(38, 18)
+  OfferTypeId        Int
+  Message            String?      @db.NVarChar(250)
+  CashDiscountAmount Decimal      @db.Decimal(38, 18)
+  Transactions       Transactions @relation(fields: [TransactionId], references: [TransactionId], onUpdate: NoAction, map: "FK_TransactionDeals_Transactions_TransactionId")
+
+  @@index([TransactionId], map: "IX_TransactionDeals_TransactionId")
+}
+
+model TransactionFees {
+  TransactionFeeId       BigInt               @id(map: "PK_TransactionFees") @default(autoincrement())
+  TransactionId          BigInt
+  TransactionFeeTypeId   Int
+  TransactionFeeStatusId Int
+  Amount                 Decimal              @db.Decimal(38, 18)
+  Rate                   Decimal              @db.Decimal(18, 6)
+  Date                   DateTime
+  ExternalProcessType    String?              @db.NVarChar(Max)
+  TransactionFeeStatus   TransactionFeeStatus @relation(fields: [TransactionFeeStatusId], references: [TransactionFeeStatusId], onUpdate: NoAction, map: "FK_TransactionFees_TransactionFeeStatus_TransactionFeeStatusId")
+  TransactionFeeType     TransactionFeeType   @relation(fields: [TransactionFeeTypeId], references: [TransactionFeeTypeId], onUpdate: NoAction, map: "FK_TransactionFees_TransactionFeeType_TransactionFeeTypeId")
+  Transactions           Transactions         @relation(fields: [TransactionId], references: [TransactionId], onUpdate: NoAction, map: "FK_TransactionFees_Transactions_TransactionId")
+
+  @@index([TransactionFeeStatusId], map: "IX_TransactionFees_TransactionFeeStatusId")
+  @@index([TransactionFeeTypeId], map: "IX_TransactionFees_TransactionFeeTypeId")
+  @@index([TransactionId], map: "IX_TransactionFees_TransactionId")
+}
+
+model TransactionFeeStatus {
+  TransactionFeeStatusId Int               @id(map: "PK_TransactionFeeStatus") @default(autoincrement())
+  Description            String?           @db.NVarChar(250)
+  TransactionFees        TransactionFees[]
+}
+
+model TransactionFeeType {
+  TransactionFeeTypeId Int                  @id(map: "PK_TransactionFeeType") @default(autoincrement())
+  Description          String?              @db.NVarChar(250)
+  Rate                 Decimal              @db.Decimal(18, 6)
+  CashOutProcessType   CashOutProcessType[]
+  TransactionFees      TransactionFees[]
+}
+
+model TransactionMean {
+  TransactionMeanId    Int                    @id(map: "PK_TransactionMean") @default(autoincrement())
+  Description          String?                @db.NVarChar(250)
+  ShortDescription     String?                @db.NVarChar(Max)
+  IsEnable             Boolean
+  IsCrypto             Boolean
+  IsVisible            Boolean
+  CashbackLevel        CashbackLevel[]
+  RewardCashBackLevel  RewardCashBackLevel[]
+  TransactionMeanImage TransactionMeanImage[]
+  Transactions         Transactions[]
+}
+
+model TransactionMeanImage {
+  TransactionMeanImageId Int             @id(map: "PK_TransactionMeanImage") @default(autoincrement())
+  TransactionMeanId      Int
+  Group                  String          @db.NVarChar(50)
+  MimeType               String?         @db.NVarChar(50)
+  Url                    String          @db.NVarChar(4000)
+  TransactionMean        TransactionMean @relation(fields: [TransactionMeanId], references: [TransactionMeanId], onUpdate: NoAction, map: "FK_TransactionMeanImage_TransactionMean_TransactionMeanId")
+
+  @@index([Group], map: "IX_TransactionMeanImage_Group")
+  @@index([TransactionMeanId], map: "IX_TransactionMeanImage_TransactionMeanId")
+}
+
+model Transactions {
+  TransactionId                                                BigInt               @id(map: "PK_Transactions") @default(autoincrement())
+  UserProfileId                                                BigInt
+  RelatedUserProfileId                                         BigInt?
+  InternalBrandId                                              BigInt?
+  CashbackLevel                                                Int
+  CashbackLevelValue                                           Decimal              @db.Decimal(18, 6)
+  TransactionTypeId                                            Int
+  TransactionMeanId                                            Int
+  FundingMethodId                                              BigInt?
+  TransactionStatusId                                          Int
+  Date                                                         DateTime
+  DueDate                                                      DateTime?
+  Amount                                                       Decimal              @db.Decimal(38, 18)
+  UserAmount                                                   Decimal              @db.Decimal(38, 18)
+  TipAmount                                                    Decimal              @db.Decimal(38, 18)
+  RelatedTransactionId                                         BigInt?
+  Comment                                                      String?              @db.NVarChar(Max)
+  ExternalPaymentId                                            String?              @db.NVarChar(Max)
+  ImageUrl                                                     String?              @db.NVarChar(Max)
+  CashOutBankAccount                                           CashOutBankAccount[]
+  ExchangeProc                                                 ExchangeProc[]
+  IThriveGiftCard                                              IThriveGiftCard[]
+  Order                                                        Order[]
+  TransactionData                                              TransactionData[]
+  TransactionDeals                                             TransactionDeals[]
+  TransactionFees                                              TransactionFees[]
+  FundingMethods                                               FundingMethods?      @relation(fields: [FundingMethodId], references: [FundingMethodId], onDelete: NoAction, onUpdate: NoAction, map: "FK_Transactions_FundingMethods_FundingMethodId")
+  TransactionMean                                              TransactionMean      @relation(fields: [TransactionMeanId], references: [TransactionMeanId], onUpdate: NoAction, map: "FK_Transactions_TransactionMean_TransactionMeanId")
+  Transactions                                                 Transactions?        @relation("TransactionsToTransactions", fields: [RelatedTransactionId], references: [TransactionId], onDelete: NoAction, onUpdate: NoAction, map: "FK_Transactions_Transactions_RelatedTransactionId")
+  other_Transactions                                           Transactions[]       @relation("TransactionsToTransactions")
+  TransactionStatus                                            TransactionStatus    @relation(fields: [TransactionStatusId], references: [TransactionStatusId], onUpdate: NoAction, map: "FK_Transactions_TransactionStatus_TransactionStatusId")
+  TransactionTypes                                             TransactionTypes     @relation(fields: [TransactionTypeId], references: [TransactionTypeId], onUpdate: NoAction, map: "FK_Transactions_TransactionTypes_TransactionTypeId")
+  UserProfiles_Transactions_RelatedUserProfileIdToUserProfiles UserProfiles?        @relation("Transactions_RelatedUserProfileIdToUserProfiles", fields: [RelatedUserProfileId], references: [UserProfileId], onDelete: NoAction, onUpdate: NoAction, map: "FK_Transactions_UserProfiles_RelatedUserProfileId")
+  UserProfiles_Transactions_UserProfileIdToUserProfiles        UserProfiles         @relation("Transactions_UserProfileIdToUserProfiles", fields: [UserProfileId], references: [UserProfileId], onUpdate: NoAction, map: "FK_Transactions_UserProfiles_UserProfileId")
+
+  @@index([TransactionStatusId, TransactionTypeId, Date], map: "IX_Transaction_TransactionStatusId_TransactionTypeId_Date")
+  @@index([FundingMethodId], map: "IX_Transactions_FundingMethodId")
+  @@index([RelatedTransactionId], map: "IX_Transactions_RelatedTransactionId")
+  @@index([RelatedUserProfileId], map: "IX_Transactions_RelatedUserProfileId")
+  @@index([TransactionMeanId], map: "IX_Transactions_TransactionMeanId")
+  @@index([TransactionTypeId], map: "IX_Transactions_TransactionTypeId")
+  @@index([UserProfileId], map: "IX_Transactions_UserProfileId")
+}
+
+model TransactionStatus {
+  TransactionStatusId Int            @id(map: "PK_TransactionStatus") @default(autoincrement())
+  Description         String?        @db.NVarChar(250)
+  Transactions        Transactions[]
+}
+
+model TransactionTypes {
+  TransactionTypeId Int            @id(map: "PK_TransactionTypes") @default(autoincrement())
+  Description       String?        @db.NVarChar(250)
+  Factor            Int
+  Transactions      Transactions[]
+}
+
+model TransferFunds {
+  TransferFundId                 Int     @id(map: "PK_TransferFunds") @default(autoincrement())
+  TransferId                     String? @db.NVarChar(Max)
+  Success                        Boolean
+  Amount                         Decimal @db.Decimal(18, 2)
+  DestinationCardUUID            String? @db.NVarChar(Max)
+  SourceCardUUID                 String? @db.NVarChar(Max)
+  RecipientBalanceId             String? @db.NVarChar(Max)
+  BalanceSourceId                String? @db.NVarChar(Max)
+  TransferCreatedAt              String? @db.NVarChar(Max)
+  TransferSourceId               String? @db.NVarChar(Max)
+  TransferStatus                 String? @db.NVarChar(Max)
+  SourceUserProfileId            BigInt
+  ReceptorUserProfileId          BigInt
+  ReceptorTransactionId          BigInt?
+  SourceTransactionId            BigInt?
+  ReceptorMoneyCardTransactionId BigInt?
+  SourceMoneyCardTransactionId   BigInt?
+
+  @@index([ReceptorUserProfileId], map: "IX_TransferFunds_ReceptorUserProfileId")
+  @@index([SourceUserProfileId], map: "IX_TransferFunds_SourceUserProfileId")
+}
+
+model TranslationEntity {
+  Id             BigInt  @id(map: "PK_TranslationEntity") @default(autoincrement())
+  EntityId       Int
+  Text           String? @db.NVarChar(Max)
+  Culture        String? @db.NVarChar(Max)
+  EntityName     String  @db.NVarChar(Max)
+  EntityProperty String? @db.NVarChar(Max)
+}
+
+model Translations {
+  Id          BigInt  @id(map: "PK_Translations") @default(autoincrement())
+  Key         String? @db.NVarChar(Max)
+  Text        String? @db.NVarChar(Max)
+  Culture     String? @db.NVarChar(Max)
+  ResourceKey String? @db.NVarChar(Max)
+}
+
+model UserAccounts {
+  UserAccountId           BigInt            @id(map: "PK_UserAccounts") @default(autoincrement())
+  UserProfileId           BigInt
+  UserName                String?           @db.NVarChar(100)
+  Email                   String?           @db.NVarChar(250)
+  CountryCode             String?           @db.NVarChar(Max)
+  Phone                   String?           @db.NVarChar(450)
+  Password                String?           @db.NVarChar(200)
+  PasswordSalt            String?           @db.NVarChar(50)
+  PasswordRecoverToken    String?           @db.NVarChar(200)
+  PasswordRecoverExpire   DateTime?
+  PhoneConfirmationToken  String?           @db.NVarChar(Max)
+  PhoneConfirmationExpire DateTime?
+  UserAccountStatusId     Int
+  CreatedAt               DateTime?
+  UpdatedAt               DateTime?
+  ExternalToken           String?           @db.NVarChar(Max)
+  PhoneConfirmed          Boolean
+  UserAccountStatus       UserAccountStatus @relation(fields: [UserAccountStatusId], references: [UserAccountStatusId], onUpdate: NoAction, map: "FK_UserAccounts_UserAccountStatus_UserAccountStatusId")
+  UserProfiles            UserProfiles      @relation(fields: [UserProfileId], references: [UserProfileId], onDelete: Cascade, onUpdate: NoAction, map: "FK_UserAccounts_UserProfiles_UserProfileId")
+
+  @@index([UserAccountStatusId], map: "IX_UserAccounts_UserAccountStatusId")
+  @@index([UserProfileId], map: "IX_UserAccounts_UserProfileId")
+}
+
+model UserAccountStatus {
+  UserAccountStatusId Int            @id(map: "PK_UserAccountStatus") @default(autoincrement())
+  Description         String?        @db.NVarChar(100)
+  UserAccounts        UserAccounts[]
+}
+
+model UserDevice {
+  UserDeviceId    BigInt   @id(map: "PK_UserDevice") @default(autoincrement())
+  UserProfileId   BigInt
+  DeviceId        String?  @db.NVarChar(Max)
+  Model           String?  @db.NVarChar(Max)
+  Manufacturer    String?  @db.NVarChar(Max)
+  DeviceName      String?  @db.NVarChar(Max)
+  Version         String?  @db.NVarChar(Max)
+  Platform        String?  @db.NVarChar(Max)
+  DeviceType      String?  @db.NVarChar(Max)
+  Date            DateTime
+  Token           String?  @db.NVarChar(Max)
+  Fingerprint     String?  @db.NVarChar(Max)
+  FingerprintHash String?  @db.NVarChar(Max)
+}
+
+model UserDeviceBlackList {
+  UserDeviceBlackListId BigInt   @id(map: "PK_UserDeviceBlackList") @default(autoincrement())
+  UserProfileId         BigInt
+  DeviceId              String?  @db.NVarChar(Max)
+  Date                  DateTime
+  Fingerprint           String?  @db.NVarChar(Max)
+  FingerprintHash       String?  @db.NVarChar(Max)
+  UserDeviceId          BigInt   @default(dbgenerated("CONVERT([bigint],(0))"), map: "DF__UserDevic__UserD__070CFC19")
+}
+
+model UserProfileLocation {
+  UserProfileLocationId BigInt    @id(map: "PK_UserProfileLocation") @default(autoincrement())
+  UserProfileId         BigInt
+  Latitud               Float
+  Longuitud             Float
+  Accurency             Float
+  IsMock                Boolean
+  TransactionId         BigInt?
+  Date                  DateTime
+  Processed             Boolean
+  ProcessedDate         DateTime?
+}
+
+model UserProfiles {
+  UserProfileId                                                BigInt                @id(map: "PK_UserProfiles") @default(autoincrement())
+  FirstName                                                    String?               @db.NVarChar(250)
+  LastName                                                     String?               @db.NVarChar(250)
+  AcceptTermsAndConditions                                     Boolean
+  Image                                                        String?               @db.NVarChar(Max)
+  TimeZone                                                     String?               @db.NVarChar(100)
+  ExternalProviderId                                           String?               @db.NVarChar(250)
+  ExternalProviderTypeId                                       Int
+  ExternalPaymentId                                            String?               @db.NVarChar(Max)
+  UserProfileStatusId                                          Int                   @default(dbgenerated("CONVERT([tinyint],(1))"), map: "DF__UserProfi__UserP__3D14070F") @db.TinyInt
+  UserIdIThrive                                                Int?
+  SharedCode                                                   String?               @db.NVarChar(Max)
+  DeepLinkUrl                                                  String?               @db.NVarChar(Max)
+  CreatedAt                                                    DateTime?
+  UpdatedAt                                                    DateTime?
+  UserSharedId                                                 String                @default(dbgenerated("newid()"), map: "DF__UserProfi__UserS__3F865F66") @db.UniqueIdentifier
+  Culture                                                      String?               @default("N'en'", map: "DF__UserProfi__Cultu__1CFC3D38") @db.NVarChar(Max)
+  ExternalRewardId                                             String?               @db.NVarChar(Max)
+  ExchangeProc                                                 ExchangeProc[]
+  FundingMethods                                               FundingMethods[]
+  IThriveGiftCard                                              IThriveGiftCard[]
+  MoneyCards                                                   MoneyCards[]
+  Transactions_Transactions_RelatedUserProfileIdToUserProfiles Transactions[]        @relation("Transactions_RelatedUserProfileIdToUserProfiles")
+  Transactions_Transactions_UserProfileIdToUserProfiles        Transactions[]        @relation("Transactions_UserProfileIdToUserProfiles")
+  UserAccounts                                                 UserAccounts[]
+  ExternalProviderTypes                                        ExternalProviderTypes @relation(fields: [ExternalProviderTypeId], references: [ExternalProviderTypeId], onUpdate: NoAction, map: "FK_UserProfiles_ExternalProviderTypes_ExternalProviderTypeId")
+  UserProfileStatus                                            UserProfileStatus     @relation(fields: [UserProfileStatusId], references: [UserProfileStatusId], onUpdate: NoAction, map: "FK_UserProfiles_UserProfileStatus_UserProfileStatusId")
+
+  @@index([UserSharedId], map: "IX_UserProfile_UserSharedId")
+  @@index([ExternalProviderTypeId], map: "IX_UserProfiles_ExternalProviderTypeId")
+  @@index([UserProfileStatusId], map: "IX_UserProfiles_UserProfileStatusId")
+}
+
+model UserProfileStatus {
+  UserProfileStatusId Int            @id(map: "PK_UserProfileStatus") @db.TinyInt
+  Description         String?        @db.NVarChar(100)
+  UserProfiles        UserProfiles[]
+}
