@@ -104,7 +104,7 @@ for (const currency in groupedTransactions) {
         row.getCell(4).font = { color: { argb: 'FFFF0000' } }; // Red for debit
       }
       if (credit) {
-        row.getCell(5).font = { color: { argb: 'FF00FF00' } }; // Green for credit
+        row.getCell(5).font = { color: { argb: '386641' } }; // Green for credit
       }
 
       // Bold the balance column
@@ -124,7 +124,17 @@ for (const currency in groupedTransactions) {
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     );
-    res.setHeader('Content-Disposition', 'attachment; filename=ledger_report.xlsx');
+    const now = new Date();
+    const formattedDate = `${now.getFullYear()}-${now.getDate().toString().padStart(2, '0')}-${(now.getMonth() + 1).toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}`;
+    
+    // Remove spaces from FirstName and LastName or replace them with underscores
+    const sanitizedFirstName = user.FirstName ? user.FirstName.replace(/\s+/g, '_') : 'UnknownFirstName';
+    const sanitizedLastName = user.LastName ? user.LastName.replace(/\s+/g, '_') : 'UnknownLastName';
+
+    console.log(formattedDate)
+    // Set the header with the sanitized names and formatted date
+    res.setHeader('Content-Disposition', `attachment; filename=${sanitizedFirstName}_${sanitizedLastName}_${formattedDate}.xlsx`);
+    
 
     // Send the file
     await workbook.xlsx.write(res);
